@@ -1,0 +1,71 @@
+# ==============================================================================
+# GITIGNORE FOR RELATIONSHIP DETECTOR (PYTHON + ML + WEB)
+# ==============================================================================
+
+# --- Python Virtual Environments ---
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# --- Byte-compiled / Optimized / DLL Files ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# --- Model Artifacts & Heavy Binary Files ---
+# (Ignore large pre-trained model weights to prevent bloating git repo)
+*.h5
+*.hdf5
+*.keras
+*.ckpt
+*.pth
+*.pt
+*.onnx
+*.pb
+*.tflite
+facial_expression_model.h5
+
+# --- Jupyter Notebook Checkpoints ---
+.ipynb_checkpoints/
+
+# --- Environment & Secret Files ---
+.env
+.env.local
+.env.*.local
+*.pem
+
+# --- IDE & Editor Settings ---
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+
+# --- OS Generated Files ---
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# --- Logs and Databases ---
+*.log
+*.sqlite3
+*.db
+
+# --- Node / Web Build Artifacts (if applicable) ---
+node_modules/
+dist/
+build/
+.cache/
+.parcel-cache/
+.next/

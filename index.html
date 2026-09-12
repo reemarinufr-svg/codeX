@@ -1,1 +1,1053 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Relationship Detector — Department of Vibes™</title>
+  <meta name="description" content="Upload your photo & video. Our comedic Department of Vibes™ AI delivers a wildly confident, 100% fake verdict on your romantic status."/>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+  <style>
+    :root{--cyan:#00f5ff;--pink:#ff2d78;--purple:#b347ff;--green:#39ff14;--amber:#ffaa00;--bg:#060610;--card:rgba(13,13,31,0.82);--border:rgba(0,245,255,0.15);--muted:rgba(200,200,255,0.5);--font:'Space Grotesk',sans-serif;--mono:'JetBrains Mono',monospace}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html{scroll-behavior:smooth}
+    body{font-family:var(--font);background:var(--bg);color:#e8e8ff;min-height:100vh;overflow-x:hidden}
 
+    /* Grid BG */
+    #grid-bg{position:fixed;inset:0;pointer-events:none;z-index:0;
+      background:linear-gradient(rgba(0,245,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,245,255,.025) 1px,transparent 1px);
+      background-size:40px 40px}
+    #grid-bg::after{content:'';position:absolute;inset:0;
+      background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(179,71,255,.12) 0%,transparent 60%),
+                  radial-gradient(ellipse 60% 40% at 80% 100%,rgba(0,245,255,.08) 0%,transparent 50%)}
+    #particles{position:fixed;inset:0;pointer-events:none;z-index:1}
+
+    /* Animations */
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+    @keyframes floatY{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes ticker{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+    @keyframes scanLine{0%{top:-2px;opacity:0}5%{opacity:1}95%{opacity:1}100%{top:100%;opacity:0}}
+    @keyframes stampIn{0%{transform:scale(3) rotate(-15deg);opacity:0}70%{transform:scale(.95) rotate(2deg);opacity:1}100%{transform:scale(1) rotate(-5deg);opacity:1}}
+    @keyframes gradShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+    @keyframes meterIn{from{width:0}}
+    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+    @keyframes popIn{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:scale(1)}}
+    @keyframes flashWhite{0%{opacity:0}30%{opacity:.85}100%{opacity:0}}
+    @keyframes camPulse{0%,100%{box-shadow:0 0 0 0 rgba(0,245,255,.5)}70%{box-shadow:0 0 0 14px rgba(0,245,255,0)}}
+
+    /* CAMERA MODAL */
+    #cam-modal{position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.96);display:none;flex-direction:column;align-items:center;justify-content:center;gap:20px;animation:fadeIn .2s ease}
+    #cam-modal.open{display:flex}
+    #cam-wrap{position:relative;width:min(480px,94vw);border-radius:16px;overflow:hidden;background:#000;border:1px solid rgba(0,245,255,.3);box-shadow:0 0 40px rgba(0,245,255,.15)}
+    #cam-feed{width:100%;display:block;transform:scaleX(-1);min-height:320px;background:#000}
+    #cam-overlay{position:absolute;inset:0;pointer-events:none}
+    #cam-scan{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--cyan),transparent);box-shadow:0 0 8px var(--cyan);animation:scanLine 1.8s linear infinite}
+    .cam-bracket{position:absolute;width:28px;height:28px;border-color:var(--cyan);border-style:solid;opacity:.9}
+    .cam-bracket.tl{top:12px;left:12px;border-width:3px 0 0 3px}
+    .cam-bracket.tr{top:12px;right:12px;border-width:3px 3px 0 0}
+    .cam-bracket.bl{bottom:12px;left:12px;border-width:0 0 3px 3px}
+    .cam-bracket.br{bottom:12px;right:12px;border-width:0 3px 3px 0}
+    #cam-face-ring{position:absolute;top:50%;left:50%;transform:translate(-50%,-55%);width:130px;height:160px;border-radius:50%;border:2px dashed rgba(0,245,255,.35);animation:pulse 2s ease-in-out infinite}
+    #cam-label{position:absolute;bottom:12px;left:0;right:0;text-align:center;font-family:var(--mono);font-size:.7rem;letter-spacing:.12em;color:rgba(0,245,255,.7)}
+    #cam-flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;border-radius:16px}
+    #cam-snap-canvas{display:none}
+    #cam-preview{width:100%;display:none;border-radius:16px;border:1px solid rgba(0,245,255,.3);box-shadow:0 0 30px rgba(0,245,255,.12)}
+    #cam-controls{display:flex;gap:14px;align-items:center}
+    #cam-capture-btn{width:70px;height:70px;border-radius:50%;border:4px solid var(--cyan);background:rgba(0,245,255,.1);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.9rem;transition:all .2s;animation:camPulse 2s ease-out infinite}
+    #cam-capture-btn:hover{background:rgba(0,245,255,.22);transform:scale(1.08)}
+    #cam-retake-btn,#cam-use-btn{display:none}
+    #cam-title{font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:rgba(0,245,255,.7);text-align:center}
+    #cam-hint{font-family:var(--mono);font-size:.62rem;color:var(--muted);text-align:center}
+    #cam-err{font-size:.82rem;color:var(--amber);font-family:var(--mono);text-align:center;display:none;padding:0 16px}
+    #cam-close{position:absolute;top:14px;right:14px;width:36px;height:36px;border-radius:50%;border:1px solid rgba(200,200,255,.2);background:rgba(0,0,0,.6);color:var(--muted);cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;z-index:10}
+    #cam-close:hover{color:#fff;border-color:rgba(255,255,255,.4)}
+
+    /* NAV */
+    #nav{position:fixed;top:0;left:0;right:0;z-index:200;height:56px;
+      background:rgba(6,6,16,.92);backdrop-filter:blur(20px);
+      border-bottom:1px solid rgba(0,245,255,.1);
+      display:flex;align-items:center;justify-content:space-between;padding:0 24px}
+    #nav-logo{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:.85rem;font-weight:700;color:var(--cyan);letter-spacing:.05em}
+    #nav-right{display:flex;align-items:center;gap:12px}
+    #nav-status{font-family:var(--mono);font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+    #audio-btn{width:40px;height:40px;border-radius:50%;border:1px solid rgba(0,245,255,.3);background:rgba(0,245,255,.06);color:var(--cyan);cursor:pointer;font-size:1.1rem;display:flex;align-items:center;justify-content:center;transition:all .2s}
+    #audio-btn:hover{background:rgba(0,245,255,.14);box-shadow:0 0 12px rgba(0,245,255,.25)}
+
+    /* TICKER */
+    #ticker{overflow:hidden;white-space:nowrap;background:rgba(0,245,255,.05);border-top:1px solid rgba(0,245,255,.12);border-bottom:1px solid rgba(0,245,255,.12);padding:7px 0;position:relative;z-index:2}
+    #ticker-inner{display:inline-block;animation:ticker 30s linear infinite;font-family:var(--mono);font-size:.72rem;color:var(--cyan);letter-spacing:.1em}
+
+    /* LAYOUT */
+    .page{position:relative;z-index:2;padding:56px 0 0;min-height:100vh;display:none}
+    .page.active{display:block}
+    .container{max-width:1080px;margin:0 auto;padding:0 22px}
+    .section{padding:48px 0}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+    .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+    @media(max-width:720px){.grid2{grid-template-columns:1fr}.grid4{grid-template-columns:repeat(2,1fr)}.hide-mob{display:none!important}}
+
+    /* GLASS CARD */
+    .card{background:var(--card);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid var(--border);border-radius:16px;position:relative;overflow:hidden;padding:24px}
+    .card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(0,245,255,.55),transparent)}
+    .card-pink::before{background:linear-gradient(90deg,transparent,rgba(255,45,120,.55),transparent)}
+    .card-purple::before{background:linear-gradient(90deg,transparent,rgba(179,71,255,.55),transparent)}
+
+    /* GRADIENT TEXT */
+    .grad{background:linear-gradient(135deg,var(--cyan),var(--purple),var(--pink));background-size:200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:gradShift 4s ease infinite}
+
+    /* BUTTONS */
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:14px 32px;font-family:var(--font);font-size:1rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;cursor:pointer;border-radius:10px;border:none;transition:all .22s}
+    .btn-main{background:linear-gradient(135deg,var(--cyan),var(--purple));color:#000}
+    .btn-main:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(0,245,255,.38)}
+    .btn-outline{background:transparent;color:var(--cyan);border:1px solid rgba(0,245,255,.4);font-size:.85rem;padding:10px 22px}
+    .btn-outline:hover{background:rgba(0,245,255,.1);box-shadow:0 0 14px rgba(0,245,255,.18);transform:translateY(-1px)}
+    .btn-ghost{background:transparent;color:var(--muted);border:1px solid rgba(200,200,255,.2);font-size:.85rem;padding:10px 20px}
+    .btn-ghost:hover{color:#e8e8ff;background:rgba(255,255,255,.04)}
+    .btn:disabled{opacity:.5;cursor:not-allowed}
+
+    /* HERO */
+    .badge{display:inline-flex;align-items:center;gap:8px;padding:5px 15px;background:rgba(179,71,255,.11);border:1px solid rgba(179,71,255,.33);border-radius:999px;font-family:var(--mono);font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--purple)}
+    .badge-dot{width:6px;height:6px;border-radius:50%;background:var(--purple);animation:pulse 1.2s ease infinite}
+    .hero-title{font-size:clamp(2.4rem,7vw,5rem);font-weight:700;line-height:1.06;letter-spacing:-.02em}
+    .hero-sub{font-size:.78rem;font-family:var(--mono);color:var(--pink);letter-spacing:.18em;margin-top:6px}
+    .disclaimer{background:rgba(255,170,0,.05);border:1px solid rgba(255,170,0,.2);border-radius:10px;padding:11px 16px;font-family:var(--mono);font-size:.68rem;color:rgba(255,170,0,.72);letter-spacing:.04em;line-height:1.65}
+    .label{font-family:var(--mono);font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+
+    /* UPLOAD */
+    .drop-zone{border:2px dashed rgba(0,245,255,.28);border-radius:12px;padding:36px 20px;text-align:center;cursor:pointer;transition:all .3s;background:rgba(0,245,255,.018);position:relative}
+    .drop-zone:hover,.drop-zone.over{border-color:var(--cyan);background:rgba(0,245,255,.06);box-shadow:0 0 18px rgba(0,245,255,.14)}
+    .drop-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+    .drop-zone-icon{font-size:2.4rem;margin-bottom:10px}
+    .scanner-wrap{position:relative;overflow:hidden;border-radius:10px}
+    .scan-line-el{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--cyan),transparent);box-shadow:0 0 8px var(--cyan);animation:scanLine 2s linear infinite;z-index:5}
+    .bracket{position:absolute;width:18px;height:18px;border-color:var(--cyan);border-style:solid}
+    .bracket.tl{top:7px;left:7px;border-width:2px 0 0 2px}
+    .bracket.tr{top:7px;right:7px;border-width:2px 2px 0 0}
+    .bracket.bl{bottom:7px;left:7px;border-width:0 0 2px 2px}
+    .bracket.br{bottom:7px;right:7px;border-width:0 2px 2px 0}
+    .err-msg{font-size:.82rem;color:var(--pink);margin-top:4px}
+
+    /* SCANNER PAGE */
+    .scan-ring{width:180px;height:180px;border-radius:50%;position:relative;display:flex;align-items:center;justify-content:center;margin:0 auto}
+    .scan-ring::before,.scan-ring::after{content:'';position:absolute;border-radius:50%;border:2px solid transparent}
+    .scan-ring::before{inset:0;border-top-color:var(--cyan);border-right-color:rgba(0,245,255,.28);animation:spin 1s linear infinite}
+    .scan-ring::after{inset:18px;border-bottom-color:var(--purple);border-left-color:rgba(179,71,255,.28);animation:spin 1.5s linear infinite reverse}
+    .scan-core{width:90px;height:90px;border-radius:50%;background:radial-gradient(circle,rgba(0,245,255,.18),transparent 70%);border:1px solid rgba(0,245,255,.28);display:flex;align-items:center;justify-content:center;font-size:2.4rem;animation:floatY 2s ease-in-out infinite}
+    .stage-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;font-family:var(--mono);font-size:.78rem;transition:all .3s}
+    .stage-item.pending{color:rgba(200,200,255,.28)}
+    .stage-item.active{color:var(--cyan);background:rgba(0,245,255,.07)}
+    .stage-item.done{color:rgba(57,255,20,.7)}
+
+    /* METERS */
+    .meter-track{width:100%;height:9px;background:rgba(255,255,255,.06);border-radius:999px;overflow:hidden;margin:5px 0}
+    .meter-fill{height:100%;border-radius:999px;transition:width .06s linear}
+    .mf-cyan{background:linear-gradient(90deg,rgba(0,245,255,.35),var(--cyan))}
+    .mf-pink{background:linear-gradient(90deg,rgba(255,45,120,.35),var(--pink))}
+    .mf-purple{background:linear-gradient(90deg,rgba(179,71,255,.35),var(--purple))}
+    .mf-green{background:linear-gradient(90deg,rgba(57,255,20,.35),var(--green))}
+    .mf-amber{background:linear-gradient(90deg,rgba(255,170,0,.35),var(--amber))}
+    .mf-grad{background:linear-gradient(90deg,var(--green),var(--amber),var(--pink))}
+
+    /* RESULTS */
+    .verdict-stamp{animation:stampIn .55s cubic-bezier(.34,1.56,.64,1) forwards}
+    .verdict-word{font-size:clamp(2.8rem,9vw,5.5rem);font-weight:900;letter-spacing:-.02em}
+    .metric-row{background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.05);border-radius:8px;padding:12px 14px;transition:all .2s}
+    .metric-row:hover{background:rgba(0,245,255,.03);border-color:rgba(0,245,255,.12)}
+    .ev-card{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:15px;transition:all .22s}
+    .ev-card:hover{background:rgba(0,245,255,.04);border-color:rgba(0,245,255,.2);transform:translateY(-2px)}
+    .roast-box{background:linear-gradient(135deg,rgba(255,45,120,.08),rgba(179,71,255,.08));border:1px solid rgba(255,45,120,.24);border-radius:12px;padding:20px;font-style:italic;line-height:1.75;position:relative}
+    .roast-box::before{content:'"';position:absolute;top:-10px;left:14px;font-size:4rem;color:rgba(255,45,120,.28);font-family:Georgia,serif;line-height:1}
+
+    /* MODAL */
+    #modal{position:fixed;inset:0;background:rgba(0,0,0,.86);backdrop-filter:blur(8px);z-index:500;display:none;align-items:center;justify-content:center;padding:20px;animation:fadeIn .22s ease}
+    #modal.open{display:flex}
+    .modal-inner{max-width:540px;width:100%;max-height:90vh;overflow-y:auto}
+
+    /* UTILITIES */
+    .flex{display:flex}.fc{flex-direction:column}.ic{align-items:center}.jc{justify-content:center}.jb{justify-content:space-between}
+    .gap2{gap:8px}.gap3{gap:12px}.gap4{gap:16px}.gap6{gap:24px}
+    .tc{text-align:center}.w100{width:100%}.rel{position:relative}.oh{overflow:hidden}
+    .mt2{margin-top:8px}.mt4{margin-top:16px}.mt6{margin-top:24px}.mt8{margin-top:32px}
+    .mb2{margin-bottom:8px}.mb4{margin-bottom:16px}.mb6{margin-bottom:24px}
+    .fup{animation:fadeUp .55s ease both}
+    .fup1{animation:fadeUp .55s ease .1s both}
+    .fup2{animation:fadeUp .55s ease .2s both}
+    .fup3{animation:fadeUp .55s ease .3s both}
+    .fup4{animation:fadeUp .55s ease .4s both}
+    .fup5{animation:fadeUp .55s ease .5s both}
+    .float{animation:floatY 3s ease-in-out infinite}
+    .mono{font-family:var(--mono)}
+    .sm{font-size:.85rem}.xs{font-size:.74rem}.lg{font-size:1.1rem}.xl{font-size:1.25rem}
+    .bold{font-weight:700}.semibold{font-weight:600}
+    .c-cyan{color:var(--cyan)}.c-pink{color:var(--pink)}.c-purple{color:var(--purple)}.c-green{color:var(--green)}.c-amber{color:var(--amber)}.c-muted{color:var(--muted)}
+    ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:rgba(0,245,255,.3);border-radius:3px}
+    .neon-pulse{animation:pulse 2s ease-in-out infinite}
+  </style>
+</head>
+<body>
+  <div id="grid-bg" aria-hidden="true"></div>
+  <canvas id="particles" aria-hidden="true"></canvas>
+
+  <!-- NAV -->
+  <nav id="nav">
+    <div id="nav-logo"><span>🔍</span> RELATIONSHIP DETECTOR <span class="c-purple xs mono hide-mob">v2.0 ULTRA™</span></div>
+    <div id="nav-right">
+      <span id="nav-status" class="hide-mob">◉ STANDING BY</span>
+      <button id="audio-btn" title="Toggle Sound">🔊</button>
+    </div>
+  </nav>
+
+  <!-- TICKER -->
+  <div id="ticker" style="margin-top:56px">
+    <div id="ticker-inner">
+      ⬥ DEPARTMENT OF VIBES™ — LIVE FORENSIC ANALYSIS FEED &nbsp;⬥&nbsp; ALL METRICS ARE 100% COMEDIC PARODY &nbsp;⬥&nbsp; EYE MOVEMENTS CANNOT DETERMINE RELATIONSHIP STATUS &nbsp;⬥&nbsp; FOR ENTERTAINMENT ONLY &nbsp;⬥&nbsp; LIE PROBABILITY ≠ ACTUAL TRUTH &nbsp;⬥&nbsp; CONSULT A THERAPIST, NOT AN AI &nbsp;⬥&nbsp; DEPARTMENT OF VIBES™ — LIVE FORENSIC ANALYSIS FEED &nbsp;⬥&nbsp; ALL METRICS ARE 100% COMEDIC PARODY &nbsp;⬥&nbsp; EYE MOVEMENTS CANNOT DETERMINE RELATIONSHIP STATUS &nbsp;⬥&nbsp; FOR ENTERTAINMENT ONLY &nbsp;⬥&nbsp; LIE PROBABILITY ≠ ACTUAL TRUTH &nbsp;⬥&nbsp; CONSULT A THERAPIST, NOT AN AI &nbsp;⬥&nbsp;
+    </div>
+  </div>
+
+  <!-- PAGE: HERO -->
+  <div id="page-hero" class="page active">
+    <div class="container section">
+      <div class="flex fc ic tc gap6" style="max-width:720px;margin:0 auto">
+        <div class="fup1"><span class="badge"><span class="badge-dot"></span>Department of Vibes™ · Classified Intelligence Division</span></div>
+        <div class="fup2 float">
+          <h1 class="hero-title grad">Relationship<br>Detector</h1>
+          <div class="hero-sub">v2.0 ULTRA™ — FORENSIC ROMANCE EDITION</div>
+        </div>
+        <p class="fup3" style="color:rgba(200,200,255,.75);line-height:1.85;font-size:1.05rem">
+          Upload your photo &amp; video evidence. Our <strong class="c-cyan">Department of Vibes™ AI</strong> will analyze your ocular patterns, blink frequencies, and micro-expressions to deliver a wildly confident, 100% scientifically-unverified verdict on your romantic status.
+        </p>
+        <div class="grid4 fup4" style="width:100%;max-width:680px">
+          <div class="card tc" style="padding:16px"><div style="font-size:1.7rem;margin-bottom:6px">👁️</div><div class="xs c-muted">Eye Betrayal Analysis™</div></div>
+          <div class="card tc" style="padding:16px"><div style="font-size:1.7rem;margin-bottom:6px">🤥</div><div class="xs c-muted">Lie Probability Index</div></div>
+          <div class="card tc" style="padding:16px"><div style="font-size:1.7rem;margin-bottom:6px">💕</div><div class="xs c-muted">Vibes Entanglement Scan</div></div>
+          <div class="card tc" style="padding:16px"><div style="font-size:1.7rem;margin-bottom:6px">🔥</div><div class="xs c-muted">Certified Roast Report™</div></div>
+        </div>
+        <div class="disclaimer fup5" style="max-width:640px;text-align:left">
+          ⚠️ DISCLAIMER: This application is 100% parody entertainment. All metrics, verdicts, and lie probabilities are randomly generated for comedic effect. Eye movements CANNOT determine relationship status or truthfulness. No actual computer vision or biometric analysis is performed. For entertainment only.
+        </div>
+        <div class="flex gap4 ic fup5" style="flex-wrap:wrap;justify-content:center">
+          <button class="btn btn-main" id="hero-cta" style="font-size:1.05rem;padding:16px 44px">🔍 Investigate Me</button>
+        </div>
+        <div class="flex gap6 ic xs mono fup5" style="opacity:.55">
+          <span>💔 SINGLE</span><span style="color:rgba(255,255,255,.18)">|</span>
+          <span>💕 DATING</span><span style="color:rgba(255,255,255,.18)">|</span>
+          <span>❤️ COMMITTED</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE: UPLOAD -->
+  <div id="page-upload" class="page">
+    <div class="container section">
+      <div class="tc fup mb6">
+        <button class="btn btn-ghost mb4" id="upload-back">← Back to HQ</button>
+        <h2 class="grad bold" style="font-size:1.9rem">Evidence Submission</h2>
+        <p class="mt2 c-muted sm">Submit your evidence for forensic analysis by the Department of Vibes™</p>
+      </div>
+      <div style="max-width:560px;margin:0 auto">
+        <!-- VIDEO / LIVE CAMERA EVIDENCE -->
+        <div class="card card-pink fup1">
+          <div class="flex ic gap3 mb4">
+            <span style="font-size:1.4rem">🎬</span>
+            <div><div class="bold lg c-pink">Evidence Submission</div><div class="label">Video Clip / Live Selfie</div></div>
+          </div>
+          <div id="webcam-view" style="display:none" class="scanner-wrap mb3">
+            <video id="webcam-video" muted playsinline style="width:100%;height:220px;object-fit:cover;background:#000;border-radius:8px;display:block"></video>
+            <div class="scan-line-el" style="background:linear-gradient(90deg,transparent,var(--pink),transparent);box-shadow:0 0 8px var(--pink)"></div>
+            <div id="countdown" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:76px;height:76px;border-radius:50%;background:rgba(255,45,120,.15);border:3px solid var(--pink);display:flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:700;color:var(--pink)">5</div>
+            <div style="position:absolute;bottom:10px;left:0;right:0;text-align:center"><span class="mono xs c-pink">⏺ RECORDING — LOOK SUSPICIOUS</span></div>
+          </div>
+          <div id="video-preview" style="display:none" class="scanner-wrap mb3">
+            <video id="video-player" controls style="width:100%;height:220px;object-fit:cover;border-radius:8px;display:block"></video>
+            <div class="bracket tl" style="border-color:var(--pink)"></div><div class="bracket tr" style="border-color:var(--pink)"></div>
+            <div class="bracket bl" style="border-color:var(--pink)"></div><div class="bracket br" style="border-color:var(--pink)"></div>
+          </div>
+          <div id="video-drop" class="drop-zone mb3" style="border-color:rgba(255,45,120,.28)">
+            <input type="file" id="video-file" accept="video/*"/>
+            <div class="drop-zone-icon">🎥</div>
+            <div class="semibold mb2">Drop video here or click to browse</div>
+            <div class="xs c-muted">MP4, WEBM, MOV — max ~50MB</div>
+          </div>
+          <div id="video-status" class="flex ic gap3 mb2" style="display:none!important">
+            <span class="xs mono c-green" id="video-name"></span>
+            <button class="btn btn-outline" style="margin-left:auto;padding:5px 12px;font-size:.72rem;color:var(--pink);border-color:rgba(255,45,120,.4)" id="video-replace">Replace</button>
+          </div>
+          <div id="video-err" class="err-msg" style="display:none"></div>
+          <div id="webcam-err" class="err-msg" style="color:var(--amber);display:none"></div>
+          <button class="btn btn-outline w100" id="webcam-btn" style="justify-content:center;color:var(--pink);border-color:rgba(255,45,120,.4)">📹 Record 5-Second Live Selfie</button>
+        </div>
+      </div>
+      <div class="tc mt6 fup3">
+        <div class="disclaimer" style="max-width:580px;margin:0 auto 22px">⚠️ Your media is processed entirely in your browser. Nothing is uploaded to any server. All analysis is deterministic comedy. We literally cannot see your eyes. This is all made up.</div>
+        <button class="btn btn-main" id="launch-btn" style="font-size:1.05rem;padding:16px 52px">🔍 Begin Relationship Investigation</button>
+        <div class="mt4 xs mono c-muted">This will trigger 13 fake forensic scans and one certified roast. You've been warned.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE: SCANNING -->
+  <div id="page-scan" class="page">
+    <div class="container section flex fc ic gap6">
+      <div class="tc fup">
+        <h2 class="bold c-cyan" style="font-size:1.85rem;text-shadow:0 0 20px var(--cyan)">Forensic Scan In Progress</h2>
+        <p class="mt2 mono sm c-muted">Department of Vibes™ biometric analysis running...</p>
+      </div>
+      <div class="grid2 w100" style="max-width:940px">
+        <div class="card fup1 flex fc gap4">
+          <div class="label">Live Forensic Visualization</div>
+          <div class="rel oh" style="background:#050510;border-radius:10px">
+            <canvas id="scan-canvas" width="480" height="270" style="display:block;width:100%"></canvas>
+            <div class="bracket tl"></div><div class="bracket tr"></div>
+            <div class="bracket bl"></div><div class="bracket br"></div>
+          </div>
+          <div class="scan-ring"><div class="scan-core">🔬</div></div>
+          <div class="flex jc gap6 xs mono c-muted">
+            <span class="c-cyan" id="scan-pct">0% COMPLETE</span>
+            <span id="scan-stage-num">STAGE 1/13</span>
+          </div>
+        </div>
+        <div class="card fup2 flex fc gap2" id="stage-list" style="overflow-y:auto;max-height:540px">
+          <div class="label mb2">Forensic Analysis Log</div>
+        </div>
+      </div>
+      <div class="disclaimer tc fup3" style="max-width:580px">🎭 No actual eye analysis is occurring. Our server hamsters are generating random numbers and calling them "biometrics." The Department of Vibes™ is not a real government agency.</div>
+    </div>
+  </div>
+
+  <!-- PAGE: RESULTS -->
+  <div id="page-results" class="page">
+    <div class="container section flex fc gap6">
+      <div class="tc fup">
+        <button class="btn btn-ghost mb4" id="results-reset">🔄 Re-Investigate</button>
+        <div class="label mb2">DEPARTMENT OF VIBES™ · CLASSIFIED ROMANCE DOSSIER</div>
+        <h2 class="grad bold" style="font-size:1.85rem">Analysis Complete</h2>
+      </div>
+      <!-- VERDICT -->
+      <div class="card tc fup1" id="verdict-card" style="padding:36px">
+        <div class="label mb4">FORENSIC VERDICT</div>
+        <div id="verdict-stamp" class="verdict-stamp" style="opacity:0">
+          <div id="verdict-emoji" style="font-size:3.8rem;margin-bottom:8px"></div>
+          <div id="verdict-word" class="verdict-word"></div>
+        </div>
+        <p id="verdict-sub" class="mt4 lg" style="color:rgba(200,200,255,.7);max-width:480px;margin:14px auto 0"></p>
+        <div id="verdict-conf" class="mono xs mt4" style="opacity:.65"></div>
+      </div>
+
+      <!-- FACIAL EXPRESSION CLASSIFIER (KAGGLE FER-2013) -->
+      <div class="card card-purple fup2 mb2">
+        <div class="flex jb ic mb4" style="flex-wrap:wrap;gap:12px">
+          <div>
+            <div class="label">FACIAL EXPRESSION CLASSIFIER (EXPRESSION-BASED ANALYSIS)</div>
+            <div class="bold lg c-purple mt2" id="expression-detected-title">Detected Primary Emotion: 😄 HAPPY</div>
+          </div>
+          <span class="badge" id="expression-badge" style="font-size:.85rem;padding:8px 18px">😄 HAPPY</span>
+        </div>
+        <div class="label mb2">7-Emotion Probability Breakdown:</div>
+        <div id="expression-bars-container" class="grid2" style="gap:10px"></div>
+      </div>
+
+      <!-- GAUGES + METRICS -->
+      <div class="grid2 fup2">
+        <div class="card card-pink flex fc gap6">
+          <div class="label">Romance Metrics</div>
+          <div id="meters-container"></div>
+        </div>
+        <div class="card flex fc gap3">
+          <div class="label mb2">Biometric Breakdown™ (Fake)</div>
+          <div id="metrics-container"></div>
+        </div>
+      </div>
+      <!-- EVIDENCE -->
+      <div class="fup3">
+        <div class="label mb4">🔬 The Evidence</div>
+        <div class="grid2" id="evidence-container"></div>
+      </div>
+      <!-- ROAST -->
+      <div class="fup4">
+        <div class="label mb3">🔥 Final Verdict — Personalized Roast</div>
+        <div class="roast-box">
+          <div class="label mb2 c-pink">Department of Vibes™ Official Statement:</div>
+          <p id="roast-text" style="padding-top:8px"></p>
+          <div class="mono xs mt4" style="color:rgba(255,45,120,.45)">⚠️ This roast is 100% procedurally generated comedy. Please do not cry. Or do. We're not your therapist.</div>
+        </div>
+      </div>
+      <!-- ACTIONS -->
+      <div class="flex gap4 ic fup5" style="flex-wrap:wrap;justify-content:center">
+        <button class="btn btn-main" id="share-btn">🎴 Download Roast Card</button>
+        <button class="btn btn-outline" id="results-reset2">🔄 Investigate Someone Else</button>
+      </div>
+      <div class="disclaimer tc fup5">🎭 IMPORTANT REMINDER: Everything above is fabricated entertainment. No real analysis was performed. Please do not forward this to your partner as evidence. We beg you.</div>
+    </div>
+  </div>
+
+  <!-- MODAL: SHARE CARD -->
+  <div id="modal">
+    <div class="modal-inner">
+      <div class="card flex fc gap6">
+        <div class="flex jb ic">
+          <div><div class="label">ROAST CARD GENERATOR</div><div class="grad bold xl mt2">Download Your Dossier</div></div>
+          <button class="btn btn-ghost" id="modal-close" style="padding:8px 14px">✕ Close</button>
+        </div>
+        <div style="border-radius:12px;overflow:hidden;max-height:60vh;overflow-y:auto">
+          <canvas id="share-canvas" style="width:100%;display:block"></canvas>
+        </div>
+        <div class="flex gap3">
+          <button class="btn btn-main w100" id="dl-btn" style="justify-content:center">⬇️ Download PNG</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+
+<script>
+/* ====================================================
+   RELATIONSHIP DETECTOR — Pure Vanilla JS
+   Department of Vibes™ — Zero Dependencies
+   Works 100% offline, no server, no build step
+   ==================================================== */
+
+// ── STATE ─────────────────────────────────────────────
+const state = {
+  photo: null,      // { dataUrl, name }
+  video: null,      // { dataUrl, name, size }
+  results: null,
+  audioMuted: false,
+  scanAnim: null,
+};
+
+// ── SOUND ─────────────────────────────────────────────
+const Sound = (() => {
+  let actx = null, muted = false;
+  function ctx() {
+    if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    return actx;
+  }
+  function tone(freq, type, dur, vol=0.13, delay=0) {
+    if (muted) return;
+    try {
+      const c=ctx(), o=c.createOscillator(), g=c.createGain();
+      o.connect(g); g.connect(c.destination);
+      o.type=type; o.frequency.setValueAtTime(freq,c.currentTime+delay);
+      g.gain.setValueAtTime(0,c.currentTime+delay);
+      g.gain.linearRampToValueAtTime(vol,c.currentTime+delay+0.03);
+      g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+delay+dur);
+      o.start(c.currentTime+delay); o.stop(c.currentTime+delay+dur+0.05);
+    } catch(e){}
+  }
+  return {
+    click(){ tone(880,'sine',.08,.12); tone(1320,'sine',.05,.06,.04); },
+    scan(){ [200,300,450,600,800,1000,800,600].forEach((f,i)=>tone(f,'sawtooth',.15,.06,i*.12)); },
+    stage(){ tone(660,'sine',.1,.08); tone(880,'sine',.08,.06,.08); },
+    reveal(){ [261,329,392,523].forEach((f,i)=>tone(f,'sine',.4,.12,i*.1)); tone(784,'sine',.6,.15,.5); },
+    error(){ tone(220,'sawtooth',.2,.1); tone(180,'sawtooth',.2,.1,.15); },
+    mute(v){ muted=v; },
+  };
+})();
+
+// ── FORENSICS ENGINE ──────────────────────────────────
+const Forensics = (() => {
+  function hash(s) {
+    let h=0x811c9dc5;
+    for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=(h*0x01000193)>>>0;}
+    return h;
+  }
+  function rngFactory(seed) {
+    let s=seed;
+    return ()=>{ s=(s*1664525+1013904223)>>>0; return s/0xffffffff; };
+  }
+
+  const EMOTIONS = [
+    { id:'happy', name:'Happy', emoji:'😄', color:'var(--green)' },
+    { id:'neutral', name:'Neutral', emoji:'😐', color:'var(--cyan)' },
+    { id:'sad', name:'Sad', emoji:'😢', color:'var(--purple)' },
+    { id:'surprise', name:'Surprise', emoji:'😲', color:'var(--pink)' },
+    { id:'angry', name:'Angry', emoji:'😠', color:'var(--pink)' },
+    { id:'fear', name:'Fear', emoji:'😨', color:'var(--amber)' },
+    { id:'disgust', name:'Disgust', emoji:'🤢', color:'var(--green)' }
+  ];
+
+  return {
+    analyze(photoUrl, videoUrl, forcedEmotion=null) {
+      const seed = hash((photoUrl||'').slice(0,200)+(videoUrl||'').slice(0,200));
+      const rng = rngFactory(seed);
+
+      // Determine primary emotion (Kaggle FER-2013 categories)
+      let primaryEmotionId = forcedEmotion;
+      if (!primaryEmotionId) {
+        const emoIndex = Math.floor(rng() * EMOTIONS.length);
+        primaryEmotionId = EMOTIONS[emoIndex].id;
+      }
+
+      const rawProbabilities = {};
+      let totalRaw = 0;
+      EMOTIONS.forEach(e => {
+        let weight = (e.id === primaryEmotionId) ? (60 + rng() * 30) : (5 + rng() * 20);
+        rawProbabilities[e.id] = weight;
+        totalRaw += weight;
+      });
+
+      const emotionScores = EMOTIONS.map(e => ({
+        ...e,
+        prob: Math.round((rawProbabilities[e.id] / totalRaw) * 100)
+      }));
+
+      const primaryObj = emotionScores.find(e => e.id === primaryEmotionId) || emotionScores[0];
+
+      // Map emotion directly to romantic verdict
+      const EMOTION_STATUS_MAP = {
+        happy:    { status: 'COMMITTED', emoji: '❤️', label: 'Terminally in Love' },
+        sad:      { status: 'SINGLE',    emoji: '💔', label: 'Single & Heartbroken' },
+        romantic: { status: 'DATING',    emoji: '💕', label: 'Flirty & Dating' },
+        surprise: { status: 'DATING',    emoji: '💕', label: 'Flirty & Dating' },
+        neutral:  { status: 'SINGLE / COMMITTED', emoji: '😐', label: 'Single or Secretly Committed' },
+        angry:    { status: 'SINGLE',    emoji: '💔', label: 'Single & Frustrated' },
+        fear:     { status: 'DATING',    emoji: '💕', label: 'Dating Panic' },
+        disgust:  { status: 'SINGLE',    emoji: '💔', label: 'Single by Choice' }
+      };
+
+      const mappedResult = EMOTION_STATUS_MAP[primaryEmotionId] || { status: 'SINGLE', emoji: '💔', label: 'Unknown' };
+      const verdict = mappedResult.status;
+
+      const eye   = Math.round(30 + rng() * 65);
+      const gaze  = Math.round(20 + rng() * 75);
+      const blink = Math.round(15 + rng() * 75);
+      const sym   = Math.round(35 + rng() * 60);
+      const move  = Math.round(20 + rng() * 70);
+      const micro = Math.round(25 + rng() * 70);
+      const roast = Math.round(30 + rng() * 65);
+      const lie   = Math.round(10 + rng() * 80);
+      const conf  = Math.round(75 + rng() * 24);
+
+      const roastTier = roast>80?'🔥 SCORCHED EARTH':roast>60?'🌶 SPICY AF':roast>40?'😬 MILD EMBARRASSMENT':'😐 CAFETERIA BEEF';
+      const verdictEmoji = mappedResult.emoji;
+      const verdictColor = {SINGLE:'var(--cyan)', DATING:'var(--amber)', COMMITTED:'var(--pink)', 'SINGLE / COMMITTED':'var(--purple)'}[verdict] || 'var(--cyan)';
+      const verdictBg = {SINGLE:'rgba(0,245,255,0.12)', DATING:'rgba(255,170,0,0.12)', COMMITTED:'rgba(255,45,120,0.12)', 'SINGLE / COMMITTED':'rgba(179,71,255,0.12)'}[verdict] || 'rgba(0,245,255,0.12)';
+
+      const exprRoasts = {
+        happy: `Detected 😄 HAPPY facial expression (${primaryObj.prob}% confidence). Our Kaggle FER-2013 model detects Golden Retriever Energy. You smile at your phone like someone who has already picked out joint Spotify playlists and baby names. Verdict: COMMITTED with 100% hopeless romantic alignment.`,
+        neutral: `Detected 😐 NEUTRAL facial expression (${primaryObj.prob}% confidence). Facial muscle suppression at 94%. You maintain the unbothered poker face of someone who leaves situationships on read and feels zero remorse. Verdict: SINGLE and clinically unbothered.`,
+        sad: `Detected 😢 SAD facial expression (${primaryObj.prob}% confidence). Ocular moisture levels indicate high exposure to Olivia Rodrigo tracks. Our model detects severe "listening to sad songs to feel something" energy. Verdict: DATING/SITUATIONSHIP panic mode.`,
+        surprise: `Detected 😲 SURPRISE facial expression (${primaryObj.prob}% confidence). Eyebrows raised into orbit! You look like someone who just saw their partner's ex walk into the exact same cafe. Verdict: COMMITTED with 99% chaos intensity.`,
+        angry: `Detected 😠 ANGRY facial expression (${primaryObj.prob}% confidence). Jaw clenched at 120 PSI. You radiate the energy of someone whose partner said "whatever you want for dinner" then rejected 5 restaurants in a row. Verdict: DATING under intense negotiations.`,
+        fear: `Detected 😨 FEAR facial expression (${primaryObj.prob}% confidence). Pupil dilation matches the frequency of someone who accidentally liked their ex's photo from 2019 while creeping at 2 AM. Verdict: DATING / Pure Situationist Panic.`,
+        disgust: `Detected 🤢 DISGUST facial expression (${primaryObj.prob}% confidence). Upper lip curled at maximum cringe angle. You look at dating apps with the same expression people use when reading terms of service agreements. Verdict: SINGLE by popular demand.`
+      };
+
+      const finalRoast = exprRoasts[primaryEmotionId] || exprRoasts.neutral;
+
+      const evidence = [
+        {icon:'🎭', title:`FER-2013 Facial Classifier™ (${primaryObj.emoji} ${primaryObj.name.toUpperCase()})`,
+          finding: `Primary emotion classified as ${primaryObj.name.toUpperCase()} ${primaryObj.emoji} with ${primaryObj.prob}% certainty. Neural weights indicate active emotional broadcast across all 48x48 facial pixel grids.`},
+        {icon:'👁️', title:'Ocular Pattern Analysis™',
+          finding: eye>50?`Pupils dilated to ${eye}% capacity — textbook emotional reaction detected.`:`Eyes narrowed to ${100-eye}% visibility, indicating intense emotional evaluation.`},
+        {icon:'🎯', title:'Gaze Vector Triangulation™',
+          finding: gaze>50?`Gaze locked at ${gaze}° vector. Subject maintains direct camera engagement.`:`Gaze shifted by ${100-gaze}°, indicating micro-hesitation under scrutiny.`},
+        {icon:'🧬', title:'Micro-Expression Spectroscopy™',
+          finding: `Detected ${micro} micro-contractions per second. Micro-muscle frequency confirms ${primaryObj.name.toUpperCase()} emotional state.`}
+      ];
+
+      const metricRoasts = {
+        eye: `Facial expression ${primaryObj.name} detected with ${primaryObj.prob}% confidence`,
+        gaze: gaze>55?`Focused look — aligned with ${primaryObj.name} emotion`:`Slightly erratic gaze trajectory`,
+        blink: blink>55?`Rapid blink rate — processing feelings`:`Controlled blink rate`,
+        sym: sym>55?`High facial symmetry during ${primaryObj.name} state`:`Asymmetric muscle activation`,
+        move: move>55?`Active micro-facial movement`:`Still expression maintained`
+      };
+
+      // ── CONSOLE OUTPUT LOGGING ──────────────────────────────────
+      console.group('%c 🔍 RELATIONSHIP DETECTOR — FORENSIC EMOTION MAP ', 'background:#060610;color:#00f5ff;font-weight:bold;font-size:13px;padding:4px 8px;border:1px solid #00f5ff;');
+      console.log('%cDetected Primary Emotion: %c' + primaryObj.emoji + ' ' + primaryObj.name + ' (' + primaryObj.prob + '% Confidence)', 'color:#e8e8ff;font-weight:bold;', 'color:#39ff14;font-weight:bold;');
+      console.log('%cMapped Relationship Status: %c' + mappedResult.emoji + ' ' + mappedResult.status + ' (' + mappedResult.label + ')', 'color:#e8e8ff;font-weight:bold;', 'color:#ff2d78;font-weight:bold;');
+      console.log('%cEmotion -> Status Mapping Matrix:', 'color:#b347ff;font-weight:bold;');
+      console.table(emotionScores.map(e => ({
+        Emotion: `${e.emoji} ${e.name}`,
+        Probability: `${e.prob}%`,
+        MappedRelationshipStatus: `${EMOTION_STATUS_MAP[e.id]?.emoji} ${EMOTION_STATUS_MAP[e.id]?.status} (${EMOTION_STATUS_MAP[e.id]?.label})`
+      })));
+      console.log('%cFinal Analysis Summary:', 'color:#ffaa00;font-weight:bold;', {
+        primaryEmotion: `${primaryObj.emoji} ${primaryObj.name}`,
+        confidence: `${primaryObj.prob}%`,
+        relationshipStatus: `${mappedResult.emoji} ${mappedResult.status}`,
+        roast: finalRoast
+      });
+      console.groupEnd();
+
+      return {
+        verdict, verdictEmoji, verdictColor, verdictBg, eye, gaze, blink, sym, move, micro,
+        roast, lie, truth:100-lie, conf, roastTier, evidence, finalRoast, metricRoasts,
+        primaryEmotion: primaryObj, emotionScores
+      };
+    }
+  };
+})();
+
+// ── PARTICLES ─────────────────────────────────────────
+function initParticles() {
+  const c = document.getElementById('particles');
+  if (!c) return;
+  const ctx = c.getContext('2d');
+  let W, H, P=[];
+  function resize(){ W=c.width=innerWidth; H=c.height=innerHeight; }
+  function spawn(){ return {x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.4,vy:(Math.random()-.5)*.4,r:Math.random()*1.5+.3,a:Math.random()*.5+.1,col:Math.random()>.5?'0,245,255':Math.random()>.5?'179,71,255':'255,45,120'}; }
+  resize(); addEventListener('resize',resize);
+  P = Array.from({length:70},spawn);
+  (function draw(){
+    ctx.clearRect(0,0,W,H);
+    P.forEach(p=>{ ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=`rgba(${p.col},${p.a})`;ctx.fill();p.x+=p.vx;p.y+=p.vy;if(p.x<-5||p.x>W+5||p.y<-5||p.y>H+5)Object.assign(p,spawn()); });
+    requestAnimationFrame(draw);
+  })();
+}
+
+// ── STAGE MESSAGES ────────────────────────────────────
+const STAGES = [
+  {msg:'🔬 Locating eyeballs...',t:400},
+  {msg:'👁️ Calibrating Eye-Betrayal-O-Meter™...',t:900},
+  {msg:'🧬 Extracting micro-expressions (there are so many)...',t:1500},
+  {msg:'📡 Pinging the Department of Vibes...',t:2200},
+  {msg:'💔 Cross-referencing ex-partner database...',t:2900},
+  {msg:'🎯 Running Blink Frequency Analysis™...',t:3600},
+  {msg:'🤥 Calculating Lie Probability Index...',t:4300},
+  {msg:'🧠 Consulting Heartbreak Historian AI...',t:5000},
+  {msg:'💡 Analyzing situationship residue...',t:5700},
+  {msg:'🔮 Running Quantum Romance Entanglement scan...',t:6400},
+  {msg:'📊 Generating Certified Roast Report™...',t:7100},
+  {msg:'🏛️ Filing paperwork with Office of Romance...',t:7800},
+  {msg:'✅ Verdict ready. Brace yourself.',t:8500},
+];
+
+// ── PAGE ROUTER ───────────────────────────────────────
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  const statusMap = {hero:'◉ STANDING BY',upload:'◉ EVIDENCE INTAKE',scan:'⚡ SCANNING',results:'✓ RESULTS IN'};
+  document.getElementById('nav-status').textContent = statusMap[id]||'';
+  window.scrollTo(0,0);
+}
+
+// ── METER ANIMATOR ────────────────────────────────────
+function animateMeter(el, targetVal, delay=0) {
+  setTimeout(()=>{
+    let cur=0;
+    const step=()=>{ cur=Math.min(cur+2,targetVal); el.style.width=cur+'%'; if(cur<targetVal) requestAnimationFrame(step); };
+    requestAnimationFrame(step);
+  }, delay);
+}
+
+function makeMeter(label, value, colorClass, sublabel='') {
+  return `
+    <div class="flex jb ic mt2"><span class="sm semibold">${label}</span><span class="mono bold lg" style="color:${colorClass}">${value}%</span></div>
+    <div class="meter-track"><div class="meter-fill" data-target="${value}" style="width:0%;background:${colorClass}"></div></div>
+    ${sublabel?`<div class="label">${sublabel}</div>`:''}
+  `;
+}
+
+// ── SAMPLE SUSPECT GENERATOR ─────────────────────────
+function generateSuspect(id, emoji) {
+  const c = document.createElement('canvas'); c.width=300; c.height=300;
+  const ctx = c.getContext('2d');
+  const bgs = ['#0d0d2b','#1a0d2b','#0d1a2b'];
+  ctx.fillStyle = bgs[(id-1)%3]; ctx.fillRect(0,0,300,300);
+  for(let i=0;i<5;i++){ctx.beginPath();ctx.arc(150,150,28+i*28,0,Math.PI*2);ctx.strokeStyle='rgba(0,245,255,0.12)';ctx.lineWidth=1;ctx.stroke();}
+  ctx.font='80px serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillStyle='rgba(255,255,255,.82)'; ctx.fillText(emoji,150,140);
+  ctx.font='13px monospace'; ctx.fillStyle='rgba(0,245,255,.5)'; ctx.fillText('SUSPECT '+id,150,230);
+  ctx.font='11px monospace'; ctx.fillText('EVIDENCE FILE #'+(1000+id*137),150,260);
+  return c.toDataURL('image/png');
+}
+
+// ── UPLOAD PAGE LOGIC ─────────────────────────────────
+function initUploadPage() {
+  // Video handlers
+  const videoFile = document.getElementById('video-file');
+  const videoDrop = document.getElementById('video-drop');
+  const videoPreview = document.getElementById('video-preview');
+  const videoPlayer = document.getElementById('video-player');
+  const videoStatus = document.getElementById('video-status');
+  const videoName = document.getElementById('video-name');
+  const videoErr = document.getElementById('video-err');
+  const webcamErr = document.getElementById('webcam-err');
+  const webcamView = document.getElementById('webcam-view');
+  const webcamBtn = document.getElementById('webcam-btn');
+
+  function setVideo(dataUrl, name, size) {
+    state.video = { dataUrl, name, size };
+    videoPlayer.src = dataUrl;
+    videoPreview.style.display = 'block';
+    videoDrop.style.display = 'none';
+    webcamBtn.style.display = 'none';
+    videoStatus.style.display = 'flex';
+    videoName.textContent = `✅ ${name} (${size}MB)`;
+    videoErr.style.display = 'none';
+    Sound.click();
+  }
+
+  function readVideoFile(file) {
+    if (!file||!file.type.startsWith('video/')) return;
+    const r=new FileReader();
+    r.onload=e=>setVideo(e.target.result,file.name,(file.size/1048576).toFixed(1));
+    r.readAsDataURL(file);
+  }
+
+  videoFile.onchange = e=>readVideoFile(e.target.files[0]);
+  videoDrop.ondragover = e=>{e.preventDefault();videoDrop.classList.add('over');};
+  videoDrop.ondragleave = ()=>videoDrop.classList.remove('over');
+  videoDrop.ondrop = e=>{e.preventDefault();videoDrop.classList.remove('over');readVideoFile(e.dataTransfer.files[0]);};
+
+  document.getElementById('video-replace').onclick = ()=>{
+    state.video=null; videoPreview.style.display='none'; videoDrop.style.display='block'; webcamBtn.style.display='flex'; videoStatus.style.display='none'; videoErr.style.display='none';
+  };
+
+  // Webcam
+  let stream=null, mr=null;
+  webcamBtn.onclick = async ()=>{
+    webcamErr.style.display='none';
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({video:true,audio:true});
+      const wv = document.getElementById('webcam-video');
+      wv.srcObject = stream; await wv.play();
+      webcamView.style.display='block'; videoDrop.style.display='none'; webcamBtn.style.display='none';
+      Sound.scan();
+      const cd = document.getElementById('countdown');
+      let t=5; cd.textContent=t;
+      const chunks=[];
+      mr = new MediaRecorder(stream);
+      mr.ondataavailable=e=>{ if(e.data.size>0) chunks.push(e.data); };
+      mr.onstop=()=>{
+        const blob=new Blob(chunks,{type:'video/webm'});
+        const r2=new FileReader();
+        r2.onload=e2=>{ webcamView.style.display='none'; setVideo(e2.target.result,'webcam_evidence.webm',(blob.size/1048576).toFixed(1)); Sound.reveal(); };
+        r2.readAsDataURL(blob);
+        stream.getTracks().forEach(t=>t.stop());
+      };
+      mr.start();
+      const iv=setInterval(()=>{ t--; cd.textContent=t; if(t<=0){clearInterval(iv);mr.stop();} },1000);
+    } catch(e) { webcamErr.textContent='⚠️ Camera access denied. Upload a video file instead.'; webcamErr.style.display='block'; }
+  };
+
+  // Launch
+  document.getElementById('launch-btn').onclick = ()=>{
+    let ok=true;
+    if (!state.video) { videoErr.textContent='🎬 Upload a video clip or record a live selfie'; videoErr.style.display='block'; ok=false; }
+    else videoErr.style.display='none';
+    if (!ok) { Sound.error(); return; }
+    Sound.scan(); startScan();
+  };
+}
+
+// ── SCANNER ───────────────────────────────────────────
+function startScan() {
+  showPage('scan');
+  // Photo overlay
+  const scanPhoto = document.getElementById('scan-photo');
+  if (state.photo) { scanPhoto.src=state.photo.dataUrl; scanPhoto.style.display='block'; }
+  // Stage list
+  const list = document.getElementById('stage-list');
+  list.innerHTML = '<div class="label mb2">Forensic Analysis Log</div>';
+  const items = STAGES.map(({msg},i)=>{
+    const d=document.createElement('div');
+    d.className='stage-item pending'; d.id='stage-'+i;
+    d.innerHTML=`<span style="min-width:18px;font-size:.88rem">○</span><span>${msg}</span>`;
+    list.appendChild(d); return d;
+  });
+  // Canvas animation
+  const canvas = document.getElementById('scan-canvas');
+  const ctx = canvas.getContext('2d');
+  let frame=0, active=true;
+  function draw(){
+    if(!active) return;
+    const W=canvas.width, H=canvas.height;
+    ctx.clearRect(0,0,W,H);
+    ctx.strokeStyle='rgba(0,245,255,0.06)'; ctx.lineWidth=1;
+    for(let x=0;x<W;x+=28){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+    for(let y=0;y<H;y+=28){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+    // Radar sweep
+    ctx.save(); ctx.translate(W/2,H/2); ctx.rotate((frame/55)*Math.PI*2);
+    const rg=ctx.createLinearGradient(0,0,Math.min(W,H)*.44,0);
+    rg.addColorStop(0,'rgba(0,245,255,0.32)'); rg.addColorStop(1,'rgba(0,245,255,0)');
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0,0,Math.min(W,H)*.44,-0.05,0.6); ctx.closePath(); ctx.fillStyle=rg; ctx.fill(); ctx.restore();
+    // Crosshairs
+    [[0.3,0.38],[0.7,0.38],[0.5,0.52]].forEach(([rx,ry])=>{
+      const cx=W*rx,cy=H*ry,p=Math.sin(frame/18)*.3+.7,sz=16;
+      ctx.strokeStyle=`rgba(0,245,255,${p*.82})`; ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.moveTo(cx-sz,cy);ctx.lineTo(cx+sz,cy);ctx.moveTo(cx,cy-sz);ctx.lineTo(cx,cy+sz);ctx.stroke();
+      ctx.beginPath();ctx.arc(cx,cy,7,0,Math.PI*2);ctx.strokeStyle=`rgba(255,45,120,${p*.65})`;ctx.stroke();
+    });
+    // Scan line
+    const sy=(frame*2.4)%H;
+    const sg=ctx.createLinearGradient(0,sy-7,0,sy+7);
+    sg.addColorStop(0,'rgba(0,245,255,0)');sg.addColorStop(.5,'rgba(0,245,255,0.48)');sg.addColorStop(1,'rgba(0,245,255,0)');
+    ctx.fillStyle=sg;ctx.fillRect(0,sy-7,W,14);
+    frame++; requestAnimationFrame(draw);
+  }
+  state.scanAnim = ()=>{ active=false; };
+  draw();
+  // Stage progression
+  let doneSet=new Set();
+  STAGES.forEach(({t},i)=>{
+    setTimeout(()=>{
+      items.forEach((el,j)=>{
+        if(doneSet.has(j)){el.className='stage-item done';el.querySelector('span').textContent='✓';}
+        else if(j===i){el.className='stage-item active';el.querySelector('span').textContent='▶';}
+        else{el.className='stage-item pending';el.querySelector('span').textContent='○';}
+      });
+      if(i>0) doneSet.add(i-1);
+      document.getElementById('scan-pct').textContent=Math.round((i/STAGES.length)*100)+'% COMPLETE';
+      document.getElementById('scan-stage-num').textContent=`STAGE ${i+1}/13`;
+      Sound.stage();
+      if(i===STAGES.length-1){
+        setTimeout(()=>{
+          active=false;
+          Sound.reveal();
+          state.results = Forensics.analyze(state.photo?.dataUrl, state.video?.dataUrl);
+          buildResults();
+          showPage('results');
+        },1200);
+      }
+    },t);
+  });
+}
+
+// ── RESULTS ───────────────────────────────────────────
+function buildResults() {
+  const R = state.results;
+
+  // Expression Classifier Card update
+  if (R.primaryEmotion) {
+    document.getElementById('expression-detected-title').textContent = `Detected Primary Emotion: ${R.primaryEmotion.emoji} ${R.primaryEmotion.name.toUpperCase()} (${R.primaryEmotion.prob}% Confidence)`;
+    const badge = document.getElementById('expression-badge');
+    badge.textContent = `${R.primaryEmotion.emoji} ${R.primaryEmotion.name.toUpperCase()}`;
+    badge.style.borderColor = R.primaryEmotion.color;
+    badge.style.color = R.primaryEmotion.color;
+
+    // Render 7-emotion breakdown bars
+    const exprBarsEl = document.getElementById('expression-bars-container');
+    if (exprBarsEl && R.emotionScores) {
+      exprBarsEl.innerHTML = R.emotionScores.map(e => `
+        <div class="metric-row mb1" style="padding:8px 12px">
+          <div class="flex jb ic"><span class="xs semibold">${e.emoji} ${e.name}</span><span class="mono xs bold" style="color:${e.color}">${e.prob}%</span></div>
+          <div class="meter-track" style="height:5px;margin:3px 0 0"><div class="meter-fill" data-target="${e.prob}" style="width:0%;background:${e.color}"></div></div>
+        </div>
+      `).join('');
+    }
+  }
+
+  // Verdict card
+  const vc = document.getElementById('verdict-card');
+  vc.style.background = R.verdictBg;
+  vc.style.borderColor = R.verdictColor;
+  const stamp = document.getElementById('verdict-stamp');
+  stamp.style.opacity='0';
+  setTimeout(()=>{ stamp.style.opacity='1'; stamp.style.animation='stampIn .55s cubic-bezier(.34,1.56,.64,1) forwards'; },400);
+  document.getElementById('verdict-emoji').textContent = R.verdictEmoji;
+  const vw = document.getElementById('verdict-word');
+  vw.textContent = R.verdict; vw.style.color = R.verdictColor;
+  vw.style.textShadow = `0 0 20px ${R.verdictColor},0 0 50px ${R.verdictColor}44`;
+  const subs = {
+    SINGLE: 'Sad / Disgust / Angry facial expression detected -> Classified as SINGLE.',
+    DATING: 'Romantic / Flirty / Fear facial expression detected -> Classified as DATING.',
+    COMMITTED: 'Happy facial expression detected -> Classified as COMMITTED.',
+    'SINGLE / COMMITTED': 'Neutral facial expression detected -> Classified as SINGLE / COMMITTED.'
+  };
+  document.getElementById('verdict-sub').textContent = subs[R.verdict] || `Facial expression analysis indicates ${R.verdict} status.`;
+  document.getElementById('verdict-conf').textContent = `CLASSIFICATION CONFIDENCE: ${R.conf}%`;
+  document.getElementById('verdict-conf').style.color = R.verdictColor;
+
+  // Meters
+  const metersEl = document.getElementById('meters-container');
+  const metersData = [
+    {label:`🔥 Roast Level — ${R.roastTier}`,val:R.roast,col:'linear-gradient(90deg,var(--green),var(--amber),var(--pink))'},
+    {label:'🤥 Lie Probability (Entertainment Only)',val:R.lie,col:'var(--pink)',sub:'NOT A REAL MEASUREMENT · FOR LAUGHS ONLY'},
+    {label:'✅ Truth Probability (Equally Fake)',val:R.truth,col:'var(--green)'},
+    {label:'🎯 AI Confidence (Comedy Confidence™)',val:R.conf,col:'var(--purple)',sub:'GENERATED BY HAMSTERS ON WHEEL · NOT AI'},
+  ];
+  metersEl.innerHTML = metersData.map(m=>`
+    <div style="margin-bottom:18px">
+      <div class="flex jb ic"><span class="sm semibold">${m.label}</span><span class="mono bold lg" style="color:${m.col};background:${m.col};-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">${m.val}%</span></div>
+      <div class="meter-track"><div class="meter-fill" data-target="${m.val}" style="width:0%;background:${m.col}"></div></div>
+      ${m.sub?`<div class="label">${m.sub}</div>`:''}
+    </div>
+  `).join('');
+
+  // Biometric rows
+  const metricsEl = document.getElementById('metrics-container');
+  const metricData = [
+    {label:'👁️ Eye Openness',val:R.eye,col:'var(--cyan)',roast:R.metricRoasts.eye},
+    {label:'🎯 Gaze Stability',val:R.gaze,col:'var(--purple)',roast:R.metricRoasts.gaze},
+    {label:'💡 Blink Frequency',val:R.blink,col:'var(--amber)',roast:R.metricRoasts.blink},
+    {label:'🧬 Eye Symmetry',val:R.sym,col:'var(--pink)',roast:R.metricRoasts.sym},
+    {label:'⚡ Eye Movement',val:R.move,col:'var(--green)',roast:R.metricRoasts.move},
+  ];
+  metricsEl.innerHTML = metricData.map(m=>`
+    <div class="metric-row mb2">
+      <div class="flex jb"><span class="sm semibold">${m.label}</span><span class="mono sm bold" style="color:${m.col}">${m.val}%</span></div>
+      <div class="meter-track" style="height:6px"><div class="meter-fill" data-target="${m.val}" style="width:0%;background:${m.col}"></div></div>
+      <div class="xs c-muted" style="font-style:italic;margin-top:3px">${m.roast}</div>
+    </div>
+  `).join('');
+
+  // Evidence
+  document.getElementById('evidence-container').innerHTML = R.evidence.map(e=>`
+    <div class="ev-card">
+      <div class="flex ic gap3 mb2"><span style="font-size:1.35rem">${e.icon}</span><span class="semibold sm c-cyan">${e.title}</span></div>
+      <p class="sm" style="color:rgba(200,200,255,.72);line-height:1.65">${e.finding}</p>
+    </div>
+  `).join('');
+
+  // Roast
+  document.getElementById('roast-text').textContent = R.finalRoast;
+
+  // Animate meters after DOM paint
+  setTimeout(()=>{
+    document.querySelectorAll('.meter-fill[data-target]').forEach((el,i)=>{
+      animateMeter(el, parseInt(el.dataset.target), i*150);
+    });
+  }, 300);
+}
+
+// ── SHARE CARD CANVAS ─────────────────────────────────
+function buildShareCard() {
+  const R = state.results;
+  const canvas = document.getElementById('share-canvas');
+  const ctx = canvas.getContext('2d');
+  const W=720, H=1000; canvas.width=W; canvas.height=H;
+
+  // BG
+  const bg=ctx.createLinearGradient(0,0,W,H);
+  bg.addColorStop(0,'#060610');bg.addColorStop(.5,'#0d0d1f');bg.addColorStop(1,'#100620');
+  ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='rgba(0,245,255,0.055)'; ctx.lineWidth=1;
+  for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+
+  // Header strip
+  const hg=ctx.createLinearGradient(0,0,W,0);hg.addColorStop(0,'transparent');hg.addColorStop(.5,'rgba(0,245,255,0.1)');hg.addColorStop(1,'transparent');
+  ctx.fillStyle=hg;ctx.fillRect(0,0,W,115);
+  ctx.strokeStyle='rgba(0,245,255,0.45)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(40,2);ctx.lineTo(W-40,2);ctx.stroke();
+
+  ctx.textAlign='center';
+  ctx.font='bold 11px monospace';ctx.fillStyle='rgba(0,245,255,0.7)';
+  ctx.fillText('DEPARTMENT OF VIBES™ · CLASSIFIED ROMANCE DOSSIER · FOR ENTERTAINMENT ONLY',W/2,24);
+
+  ctx.font='bold 31px sans-serif';
+  const tg=ctx.createLinearGradient(0,0,W,0);tg.addColorStop(0,'#00f5ff');tg.addColorStop(.5,'#b347ff');tg.addColorStop(1,'#ff2d78');
+  ctx.fillStyle=tg;ctx.fillText('RELATIONSHIP DETECTOR',W/2,66);
+  ctx.font='12px monospace';ctx.fillStyle='rgba(200,200,255,0.45)';ctx.fillText('v2.0 ULTRA™ — FORENSIC ROMANCE EDITION',W/2,90);
+
+  // Verdict color
+  const vcols={SINGLE:'#00f5ff',DATING:'#ffaa00',COMMITTED:'#ff2d78'};
+  const vc=vcols[R.verdict];
+
+  const finish=()=>{
+    // Verdict
+    ctx.textAlign='center';
+    ctx.font='bold 11px monospace';ctx.fillStyle='rgba(200,200,255,0.38)';ctx.fillText('OFFICIAL VERDICT',W/2,355);
+    ctx.font='bold 26px serif';ctx.fillStyle=vc;ctx.fillText(R.verdictEmoji,W/2,390);
+    ctx.font='bold 62px sans-serif';ctx.fillStyle=vc;ctx.shadowColor=vc;ctx.shadowBlur=18;
+    ctx.fillText(R.verdict,W/2,452);ctx.shadowBlur=0;
+
+    // Divider
+    ctx.strokeStyle='rgba(0,245,255,0.18)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(55,470);ctx.lineTo(W-55,470);ctx.stroke();
+
+    // Meters
+    const meterData=[{l:'🔥 Roast Level',v:R.roast,c:'#ff2d78'},{l:'🤥 Lie Probability',v:R.lie,c:'#b347ff'},{l:'✅ Truth Score',v:R.truth,c:'#39ff14'},{l:'🎯 Comedy Confidence',v:R.conf,c:'#00f5ff'}];
+    meterData.forEach(({l,v,c},i)=>{
+      const y=505+i*62;
+      ctx.font='14px sans-serif';ctx.fillStyle='rgba(200,200,255,0.75)';ctx.textAlign='left';ctx.fillText(l,56,y);
+      ctx.font='bold 14px monospace';ctx.fillStyle=c;ctx.textAlign='right';ctx.fillText(`${v}%`,W-56,y);
+      const tx=56,tw=W-112,th=8,ty=y+10;
+      ctx.fillStyle='rgba(255,255,255,0.05)';ctx.fillRect(tx,ty,tw,th);
+      const bw=(v/100)*tw;const bg2=ctx.createLinearGradient(tx,0,tx+bw,0);bg2.addColorStop(0,c+'55');bg2.addColorStop(1,c);
+      ctx.fillStyle=bg2;ctx.fillRect(tx,ty,bw,th);ctx.textAlign='center';
+    });
+
+    // Roast tier
+    ctx.font='bold 17px sans-serif';ctx.fillStyle='rgba(255,170,0,0.9)';ctx.textAlign='center';ctx.fillText(R.roastTier,W/2,778);
+
+    // Footer
+    ctx.strokeStyle='rgba(0,245,255,0.28)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(40,814);ctx.lineTo(W-40,814);ctx.stroke();
+    ctx.font='10px monospace';ctx.fillStyle='rgba(200,200,255,0.22)';
+    ctx.fillText('⚠️ 100% ENTERTAINMENT · NO ACTUAL ANALYSIS · DEPT. OF VIBES™ IS NOT REAL · DO NOT CITE IN COURT',W/2,842);
+    ctx.fillText('Made with ❤️ at TinkerHub Useless Projects · Relationship Detector v2.0 ULTRA™',W/2,862);
+  };
+
+  // Photo area
+  if (state.photo) {
+    ctx.save();ctx.beginPath();ctx.rect(W/2-98,118,196,196);ctx.clip();
+    const img=new Image();
+    img.onload=()=>{ctx.drawImage(img,W/2-98,118,196,196);ctx.restore();finish();};
+    img.onerror=()=>{ctx.restore();ctx.font='76px serif';ctx.fillStyle='rgba(255,255,255,.44)';ctx.textAlign='center';ctx.fillText('🕵️',W/2,240);finish();};
+    img.src=state.photo.dataUrl;
+  } else {
+    ctx.font='76px serif';ctx.fillStyle='rgba(255,255,255,.44)';ctx.textAlign='center';ctx.fillText('🕵️',W/2,240);finish();
+  }
+  // Photo border
+  ctx.strokeStyle='rgba(0,245,255,0.55)';ctx.lineWidth=2;ctx.beginPath();ctx.rect(W/2-98,118,196,196);ctx.stroke();
+}
+
+// ── RESET ─────────────────────────────────────────────
+function resetAll() {
+  state.photo=null; state.video=null; state.results=null;
+  // Reset upload UI
+  document.getElementById('video-preview').style.display='none';
+  document.getElementById('video-drop').style.display='block';
+  document.getElementById('video-status').style.display='none';
+  document.getElementById('video-err').style.display='none';
+  document.getElementById('webcam-view').style.display='none';
+  document.getElementById('webcam-btn').style.display='flex';
+  document.getElementById('webcam-err').style.display='none';
+  document.getElementById('video-player').src='';
+  document.getElementById('webcam-video').srcObject=null;
+  Sound.click();
+  showPage('hero');
+}
+
+// ── INIT ──────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', ()=>{
+  initParticles();
+  initUploadPage();
+
+  // Hero CTA
+  document.getElementById('hero-cta').onclick=()=>{ Sound.click(); showPage('upload'); };
+  // Back from upload
+  document.getElementById('upload-back').onclick=()=>{ Sound.click(); showPage('hero'); };
+  // Reset buttons
+  document.getElementById('results-reset').onclick=resetAll;
+  document.getElementById('results-reset2').onclick=resetAll;
+
+  // Audio toggle
+  let muted=false;
+  document.getElementById('audio-btn').onclick=()=>{
+    muted=!muted; Sound.mute(muted);
+    document.getElementById('audio-btn').textContent=muted?'🔇':'🔊';
+    if(!muted) Sound.click();
+  };
+
+
+
+  // Share / Download
+  document.getElementById('share-btn').onclick=()=>{
+    buildShareCard();
+    document.getElementById('modal').classList.add('open');
+  };
+  document.getElementById('modal-close').onclick=()=>document.getElementById('modal').classList.remove('open');
+  document.getElementById('modal').onclick=e=>{ if(e.target===document.getElementById('modal')) document.getElementById('modal').classList.remove('open'); };
+  document.getElementById('dl-btn').onclick=()=>{
+    Sound.reveal();
+    const btn=document.getElementById('dl-btn'); btn.textContent='⏳ Generating...'; btn.disabled=true;
+    setTimeout(()=>{
+      const a=document.createElement('a');
+      a.download=`lie-detector-${state.results.verdict.toLowerCase()}.png`;
+      a.href=document.getElementById('share-canvas').toDataURL('image/png',.95);
+      a.click();
+      btn.textContent='⬇️ Download PNG'; btn.disabled=false;
+    },500);
+  };
+});
+</script>
+</body>
+</html>
