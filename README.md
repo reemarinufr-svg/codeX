@@ -203,6 +203,11 @@ The video demonstrates the working of our website.First we can see an opening in
 - [Reema Rinu]:[Project, documentation]
 u- [Ajmal.N]: [Project, documentation]
 
+https://code-x-tau-nine.vercel.app/
+deploy
+https://github.com/reemarinufr-svg/codeX
+github
+
 ---
 Made with ❤️ at TinkerHub Useless Projects 
 
